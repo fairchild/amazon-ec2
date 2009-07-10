@@ -23,11 +23,13 @@ module EC2
   # expected that this var is set with something like:
   #   export EC2_URL='https://ec2.amazonaws.com'
   #
+
   if ENV['EC2_URL']
     EC2_URL = ENV['EC2_URL']
     VALID_HOSTS = ['https://ec2.amazonaws.com', 'https://us-east-1.ec2.amazonaws.com', 'https://eu-west-1.ec2.amazonaws.com', ENV['EC2_URL']].compact
     raise ArgumentError, "Invalid EC2_URL environment variable : #{EC2_URL}" unless VALID_HOSTS.include?(EC2_URL)
-    DEFAULT_HOST = URI.parse(EC2_URL).host
+    EC2_URI = URI.parse(EC2_URL)
+    DEFAULT_HOST = EC2_URI.host
   else
     # default US host
     DEFAULT_HOST = 'ec2.amazonaws.com'
@@ -104,9 +106,10 @@ module EC2
 
       options = { :access_key_id => "",
                   :secret_access_key => "",
-                  :use_ssl => true,
-                  :server => DEFAULT_HOST,
-                  :proxy_server => nil
+                  :use_ssl => EC2_URI.scheme=='https',
+                  :server => EC2_URI.host,
+                  :port => EC2_URI.port,
+                  :proxy_server => nil,
                   }.merge(options)
 
       @server = options[:server]
@@ -142,7 +145,6 @@ module EC2
                                 proxy.password).new(options[:server], @port)
 
       @http.use_ssl = @use_ssl
-
       # Don't verify the SSL certificates.  Avoids SSL Cert warning in log on every GET.
       @http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
@@ -169,18 +171,17 @@ module EC2
       # within a 'Response' class object or one of its sub-classes so the response is interpreted
       # in its proper context.  See lib/EC2/responses.rb
       def make_request(action, params, data='')
-
+        
         @http.start do
-
           # remove any keys that have nil or empty values
           params.reject! { |key, value| value.nil? or value.empty?}
 
-          params.merge!( {"Action" => action,
-                          "SignatureVersion" => "2",
-                          "SignatureMethod" => 'HmacSHA1',
-                          "AWSAccessKeyId" => @access_key_id,
-                          "Version" => API_VERSION,
-                          "Timestamp"=>Time.now.getutc.iso8601} )
+          params.merge!( {"Action"            => action,
+                          "SignatureVersion"  => "2",
+                          "SignatureMethod"   => 'HmacSHA1',
+                          "AWSAccessKeyId"    => @access_key_id,
+                          "Version"           => API_VERSION,
+                          "Timestamp"         => Time.now.getutc.iso8601} )
 
           sig = get_aws_auth_param(params, @secret_access_key, @server)
 
@@ -188,20 +189,23 @@ module EC2
             CGI::escape(param[0]) + "=" + CGI::escape(param[1])
           end.join("&") + "&Signature=" + sig
 
-          req = Net::HTTP::Post.new("/")
+          req = Net::HTTP::Post.new(service_path)
           req.content_type = 'application/x-www-form-urlencoded'
           req['User-Agent'] = "github-amazon-ec2-ruby-gem"
 
           response = @http.request(req, query)
-
+          # require 'ruby-debug'; debugger
           # Make a call to see if we need to throw an error based on the response given by EC2
           # All error classes are defined in EC2/exceptions.rb
           ec2_error?(response)
-
           return response
-
         end
 
+      end
+      
+      def service_path
+        return '/' if EC2_URI.path == '' || EC2_URI.path == '/'
+        EC2_URI.path 
       end
 
       # Set the Authorization header using AWS signed header authentication
@@ -213,7 +217,6 @@ module EC2
       # allow us to have a one line call in each method which will do all of the work
       # in making the actual request to AWS.
       def response_generator( options = {} )
-
         options = {
           :action => "",
           :params => {}
@@ -223,6 +226,7 @@ module EC2
 
         http_response = make_request(options[:action], options[:params])
         http_xml = http_response.body
+
         return Response.parse(:xml => http_xml)
 
       end
@@ -243,8 +247,10 @@ module EC2
 
         # Check that the Error element is in the place we would expect.
         # and if not raise a generic error exception
-        unless doc.root.elements['Errors'].elements['Error'].name == 'Error'
-          raise Error, "Unexpected error format. response.body is: #{response.body}"
+        begin
+          doc.root.elements['Errors'].elements['Error'].name == 'Error'
+        rescue Exception => e
+          raise Error, "\n#{e}:\n Unexpected error format.  response.body is:\n #{response.body}"
         end
 
         # An valid error response looks like this:
