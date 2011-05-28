@@ -12,8 +12,8 @@ require File.dirname(__FILE__) + '/test_helper.rb'
 
 context "EC2 volumes " do
 
-  setup do
-    @ec2 = EC2::Base.new( :access_key_id => "not a key", :secret_access_key => "not a secret" )
+  before do
+    @ec2 = AWS::EC2::Base.new( :access_key_id => "not a key", :secret_access_key => "not a secret" )
 
     @describe_volumes_response_body = <<-RESPONSE
     <DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2008-05-05">
@@ -137,6 +137,22 @@ context "EC2 volumes " do
     response.instanceId.should.equal "i-6058a509"
     response.device.should.equal "/dev/sdh"
     response.status.should.equal "detaching"
+  end
+
+  specify "should be able to be force detached with a string" do
+    @ec2.stubs(:make_request).with('DetachVolume', {"VolumeId" => "vol-4d826724", "InstanceId"=>"i-6058a509", "Device"=>"", "Force"=>"true"}).
+      returns stub(:body => @detach_volume_response_body, :is_a? => true)
+
+    response = @ec2.detach_volume( :volume_id => "vol-4d826724", :instance_id => "i-6058a509", :force => 'true' )
+    response.volumeId.should.equal "vol-4d826724"
+  end
+
+  specify "should be able to be force detached with a Boolean" do
+    @ec2.stubs(:make_request).with('DetachVolume', {"VolumeId" => "vol-4d826724", "InstanceId"=>"i-6058a509", "Device"=>"", "Force"=>"true"}).
+      returns stub(:body => @detach_volume_response_body, :is_a? => true)
+
+    response = @ec2.detach_volume( :volume_id => "vol-4d826724", :instance_id => "i-6058a509", :force => true )
+    response.volumeId.should.equal "vol-4d826724"
   end
 
 end

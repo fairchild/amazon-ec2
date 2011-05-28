@@ -13,19 +13,20 @@ require File.dirname(__FILE__) + '/test_helper.rb'
 context "The Response classes " do
 
 
-  setup do
+  before do
     @http_xml = <<-RESPONSE
     <RebootInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2007-03-01">
       <return>true</return>
     </RebootInstancesResponse>
     RESPONSE
 
-    @response = EC2::Response.parse(:xml => @http_xml)
+    @response = AWS::Response.parse(:xml => @http_xml)
   end
 
 
   specify "should show the response as a formatted string when calling #inspect" do
-    @response.inspect.should.equal %{{"return"=>"true", "xmlns"=>"http://ec2.amazonaws.com/doc/2007-03-01"}}
+    # sorting the response hash first since ruby 1.8.6 and ruby 1.9.1 sort the hash differently before the inspect
+    @response.sort.inspect.should.equal %{[[\"return\", \"true\"], [\"xmlns\", \"http://ec2.amazonaws.com/doc/2007-03-01\"]]}
   end
 
 

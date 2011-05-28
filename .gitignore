@@ -2,5 +2,10 @@
 .DS_Store
 coverage
 rdoc
+doc
+.yardoc
 pkg
-
+.idea
+.bundle
+.rvmrc
+perftools

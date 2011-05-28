@@ -1,3 +1,70 @@
+
+=== 0.9.17 2010-11-21
+ * Converted from Jeweler to Bundler, 'bundle install' to install dependencies
+ * Adding ability to launch t1.micro instances for ec2 regular and spot price instances
+ * Adding support for describe/modify/reset instance attributes with tests.
+ * Updated to API version : 2010-08-31
+ * Added experimental support for EC2 create_tags, describe_tags, delete_tags
+ * Added experimental Eucalyptus support, provide by Sang-Min Park from Eucalyptus.
+ * Instead of having hard coded "/" as URL path, the path can be given to as an option. Setup.rb is changed such that server, port, path, and use_ssl can be correctly set up.
+ * RDS :db_security_groups should be an Array, not a String.
+ * Use HmacSHA256 signatures instead of SHA1 (preferred by AWS and improves support for Eucalyptus)
+ * added AWS::EC2::Base#get_password_data for GetPasswordData API (Windows instances)
+ * Fix #26.  Raise an exception immediately if the response is a 5xx Server Error.
+ * Applied experimental CloudWatch Monitoring Patch by fred-secludit, removes limitations on which server to connect to, and better handles statistics and dimensions.
+ * Changed AWS::EC2::Instance from a module to a class to help along an experiment by bdigital
+ * Zarro open boogs.  Zarro Open pull requests. W00t
+
+=== 0.9.16 2010-07-07
+ * Less strict checking on which server endpoints you can pass in as an environment var.
+ * Moved ec2sh script to awshell to better reflect the more comprehensive nature of the gem.
+ * Better instructions on using awshell upon running
+ * awshell now sets up handles for all of the various services we use, not just @ec2 (+ @as, @rds, @elb, @cw)
+ * awshell prints out the various server endpoints that it will actually use in the shell (you can override with env vars).
+
+=== 0.9.11 2010-04-23
+ * RDS#create_db_instance : renamed misspelled :backend_retention_period option to :backup_retention_period.
+ * Better handling of FixNum options in a few methods.
+ * A few bug fixes.
+
+=== 0.9.10 2010-03-26
+ * Enhancements to EC2 register_image to handle registration based on EBS snapshots (jamespharaoh)
+
+=== 0.9.9 2010-03-19
+ * Bugfix in signing algorithm (wlach)
+
+=== 0.9.7 2010-03-14
+ * Added EC2 describe_subnets support (petitbon)
+
+=== 0.9.0 2010-01-19
+ * Added EC2 Spot Instance Request Support (nirvdrum)
+ * Added EC2 describe_spot_price_history (tlossen)
+ * Added ELB describe_instance_health method (rubysolo)
+
+=== 0.7.4 2009-12-05
+ * Initial support for new EBS AMI's
+ * Updated EC2 API version
+ * Added US West 1 Data Center to list of valid endpoints. (us-west-1.ec2.amazonaws.com)
+ * Updated exceptions.rb to be in sync with latest documented exceptions.
+ * Updated #run_instances to support EBS AMI's and sync with latest options.
+ * Added new #stop_instances and #start_instances methods.
+ * Added new #create_image to allow bundling of a running instance to an EBS backed AMI.
+ * Added stub methods for all known missing EC2 methods. (Please help with patches + tests!)
+ * Added and updated tests for new/modified methods.
+
+=== 0.6.1 2009-10-13
+ * Additional commits for AutoScaling.  Thanks to Ari (auser)!
+ * Updated README.rdoc installation instructions.  Reflects removal of deprecated GitHub gem building.
+
+=== 0.6.0 2009-09-30
+ * Added support for AWS AutoScaling for EC2.  Thanks to Ari Lerner (auser)!
+
+=== 0.5.2 2009-08-20
+ * Converted to YardDoc documentation format. See : http://yard.soen.ca/getting_started
+
+=== 0.5.0 2009-08-11
+ * Major re-factor by Kris Rasmussen (krisr) to add support for the AWS Elastic Load Balancer API. Kudos Kris!
+
 === 0.4.0 2009-06-06
  * Using technicalpickles/jeweler to manage gem now.  See : http://github.com/technicalpickles/jeweler/tree/master
 
@@ -23,13 +90,13 @@
 
 === 0.3.2 2008-12-11
  * Updated API version to 2008-12-01
- * Note : The new European EC2 zone should just work if you specify ':server => "eu-west-1.ec2.amazonaws.com"' when initializing EC2::Base.new().  Please report any issues you have with using this new service.
+ * Note : The new European EC2 zone should just work if you specify ':server => "eu-west-1.ec2.amazonaws.com"' when initializing AWS::EC2::Base.new().  Please report any issues you have with using this new service.
 
 === 0.3.1 2008-09-18
  * Added basic custom kernel id support to run_instances.  Thanks to Keith Hudgins for the patch.
 
 === 0.3.0 2008-08-24
- * Changed response object from AmazonEC2::Response to Hash (patch from Yan Pritzker 'skwp') Thanks!
+ * Changed response object from AmazonAWS::Response to Hash (patch from Yan Pritzker 'skwp') Thanks!
  * Added support for Elastic Block Storage (patch from Yann Klis 'yannski') Thanks!
  * Bumped AWS EC2 API version to 2008-05-05
  * Bumped gem version number
@@ -105,7 +172,7 @@
  * MAJOR refactoring of how responses are returned to users.  No longer do you have to call the
  .parse method, and no longer are you getting back simple arrays of information.  Responses
  now come in the form of OpenStruct objects that contain all of the data for an object in
- Enumerable form so you can use iterators (.each, .each_pair, etc).  All methods return an EC2::Response object
+ Enumerable form so you can use iterators (.each, .each_pair, etc).  All methods return an AWS::Response object
  which inherits from OpenStruct.  The return data from EC2, which is in XML form, is parsed
  with XmlSimple and is used to directly construct the return data structure.  This allows us
  to know with some confidence that the data structure returned from AWS will always be consistent
@@ -116,7 +183,7 @@
  that match those handed to us by Amazon EC2.  ArgumentError exceptions will also
  be thrown if you are making calls we know to be illegal or malformed.  You should rescue
  these exceptions in your application instead of parsing text responses.  All exceptions
- descend from EC2::Error.  You can see them all in exceptions.rb in the gem install.
+ descend from AWS::Error.  You can see them all in exceptions.rb in the gem install.
 
  * Added a full suite of test/spec unit tests which currently cover 100% of the public methods
  in this library.  We have abot 92% code coverage according to rcov.  This has greatly enhanced

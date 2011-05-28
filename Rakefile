@@ -1,33 +1,5 @@
-require 'rubygems'
-require 'rake'
-
-begin
-  require 'jeweler'
-  Jeweler::Tasks.new do |gem|
-    gem.name = "amazon-ec2"
-    gem.summary = %Q{Amazon EC2 Ruby Gem}
-    gem.description = %Q{An interface library that allows Ruby applications to easily connect to the HTTP 'Query API' for the Amazon Web Services Elastic Compute Cloud (EC2) and manipulate cloud servers.}
-    gem.email = "glenn@rempe.us"
-    gem.homepage = "http://github.com/grempe/amazon-ec2"
-    gem.authors = ["Glenn Rempe"]
-    # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
-
-#    gem.autorequire = 'EC2'
-    gem.rdoc_options = ["--quiet", "--title", "amazon-ec2 documentation", "--opname", "index.html", "--line-numbers", "--main", "README.rdoc", "--inline-source"]
-
-    gem.rubyforge_project = 'amazon-ec2'
-
-    gem.add_dependency('xml-simple', '>= 1.0.12')
-    gem.add_development_dependency('mocha', '>= 0.9.5')
-    gem.add_development_dependency('test-spec', '>= 0.10.0')
-    gem.add_development_dependency('rcov', '>= 0.8.1.2.0')
-    gem.add_development_dependency('perftools.rb', '= 0.1.6')
-
-  end
-
-rescue LoadError
-  puts "Jeweler (or a dependency) not available. Install it with: sudo gem install jeweler"
-end
+require 'bundler'
+Bundler::GemHelper.install_tasks
 
 require 'rake/testtask'
 Rake::TestTask.new(:test) do |test|
@@ -42,13 +14,13 @@ begin
     test.libs << 'test'
     test.pattern = 'test/**/test_*.rb'
     test.verbose = true
+    test.rcov_opts << "--exclude /gems/,/Library/,spec"
   end
 rescue LoadError
   task :rcov do
-    abort "RCov is not available. In order to run rcov, you must: sudo gem install spicycode-rcov"
+    abort "RCov is not available. In order to run rcov, you must: [sudo] gem install rcov"
   end
 end
-
 
 task :default => :test
 
@@ -68,34 +40,18 @@ Rake::RDocTask.new do |rdoc|
 end
 
 begin
-  require 'rake/contrib/sshpublisher'
-  namespace :rubyforge do
-
-    desc "Release gem and RDoc documentation to RubyForge"
-    task :release => ["rubyforge:release:gem", "rubyforge:release:docs"]
-
-    namespace :release do
-      desc "Publish RDoc to RubyForge."
-      task :docs => [:rdoc] do
-        config = YAML.load(
-            File.read(File.expand_path('~/.rubyforge/user-config.yml'))
-        )
-
-        host = "#{config['username']}@rubyforge.org"
-        remote_dir = "/var/www/gforge-projects/amazon-ec2/"
-        local_dir = 'rdoc'
-
-        Rake::SshDirPublisher.new(host, remote_dir, local_dir).upload
-      end
-    end
+  require 'yard'
+  YARD::Rake::YardocTask.new do |t|
+    #t.files   = ['lib/**/*.rb']
   end
 rescue LoadError
-  puts "Rake SshDirPublisher is unavailable or your rubyforge environment is not configured."
+  puts "YARD (or a dependency) not available. Install it with: [sudo] gem install yard"
 end
 
 desc "Generate a perftools.rb profile"
 task :profile do
-  system("CPUPROFILE=perftools/ec2prof RUBYOPT='-r/usr/local/lib/ruby/gems/1.8/gems/perftools.rb-0.1.6/lib/perftools.bundle' ruby -r'rubygems' bin/ec2-gem-profile.rb")
+  system("CPUPROFILE=perftools/ec2prof RUBYOPT='-r/Users/glenn/.rvm/gems/ruby-1.8.7-p302@amazon-ec2/gems/perftools.rb-0.5.4/lib/perftools.bundle' ruby -r'rubygems' bin/ec2-gem-profile.rb")
   system("pprof.rb --text --ignore=Gem perftools/ec2prof > perftools/ec2prof-results.txt")
   system("pprof.rb --dot --ignore=Gem perftools/ec2prof > perftools/ec2prof-results.dot")
 end
+

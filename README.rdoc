@@ -6,75 +6,67 @@ Amazon Web Services offers a compute power on demand capability known as the Ela
 
 This 'amazon-ec2' Ruby Gem is an interface library that can be used to interact with the Amazon EC2 system and control server resources on demand from your Ruby scripts, or from applications written in your Ruby framework of choice (Ruby on Rails, Merb, etc.).
 
+More recently, support has been added for the following EC2 related AWS API's as well:
+
+* Autoscaling
+* Cloudwatch
+* Elastic Load Balancing (ELB)
+* Relational Database Service (RDS)
+
 For the most complete and up-to date README information please visit the project homepage at:
 
 http://github.com/grempe/amazon-ec2/tree/master
 
-or the EC2 website at http://aws.amazon.com/ec2
+or the official EC2 website at http://aws.amazon.com/ec2
 
 
 == Installation
 
-This gem follows the standard conventions for installation on any system with Ruby and RubyGems installed.  If you have worked with gems before this will look very familiar.
+This gem follows the standard conventions for installation on any system with Ruby and RubyGems installed and uses Bundler for gem installation and build management.  If you have worked with gems before this will look very familiar.
 
 === Get an AWS account
 
 Before you can make use of this gem you will need an Amazon Web Services developer account which you can sign up for at https://aws-portal.amazon.com/gp/aws/developer/registration/index.html.  This account must also be specifically enabled for Amazon EC2 usage.  AWS will provide you with an 'AWS Access Key ID' and a 'Secret Access Key' which will allow you to authenticate any API calls you make and ensure correct billing to you for usage of the service.  Take note of these (and keep them secret!).
 
-=== Install required gem pre-requisites
+=== Install the amazon-ec2 gem (Canonical Release)
 
-The following gems should be installed automatically as part of your install of amazon-ec2. Most of them are needed for testing build dependencies but they should be painless to install even if you don't plan on running the tests or building this gem manually on your own.
+This is the standard install for stable releases from RubyGems.
 
-  XmlSimple (required)
-  Mocha (optional for testing)
-  Rcov (optional for testing)
-  Test-Spec (optional for testing)
+  # Install the gem
+  [sudo] gem install amazon-ec2
 
-=== Install the amazon-ec2 gem
 
-  # ONE TIME ONLY
-  # Execute this on each machine where you install gems to add GitHub as a gem source
-  # Do this only once or you'll end up with multiple entries in 'gem sources'
-  gem sources -a http://gems.github.com/
+=== Install from local Git clone (for amazon-ec2 developers)
 
-  # Install the stable release gem from RubyForge
-  sudo gem install amazon-ec2
+To install from git for adding features or fixing bugs, you'll need to clone and build.
 
-  # OR
+  git clone git://github.com/grempe/amazon-ec2.git
+  cd amazon-ec2
+  bundle install
+  rake test
+  rake build
+  rake install
 
-  # Install the gem from the GitHub bleeding edge as a normal runtime install
-  sudo gem install grempe-amazon-ec2
-
-  # OR
-
-  # Install the gem from the GitHub bleeding edge with all developer dependencies
-  sudo gem install grempe-amazon-ec2 --development
-
-  # OR
-
-  # Install using Rip (hellorip.com) instead of RubyGems
-  rip install git://github.com/grempe/amazon-ec2.git
 
 == Using amazon-ec2
 
-The library exposes one main interface class EC2::Base.  It is through an instance of this class that you will perform all the operations for using the EC2 service including query string header signing.
+The library exposes one main interface class AWS::EC2::Base.  It is through an instance of this class that you will perform all the operations for using the EC2 service including query string header signing.
 
-The public methods on EC2::Base closely mirror the EC2 Query API, and as such the Query API Reference in the EC2 Developer Guide ( http://developer.amazonwebservices.com/connect/kbcategory.jspa?categoryID=84 ) will prove helpful.
+The public methods on AWS::EC2::Base closely mirror the EC2 Query API, and as such the Query API Reference in the EC2 Developer Guide ( http://developer.amazonwebservices.com/connect/kbcategory.jspa?categoryID=84 ) will prove helpful.
 
 
 === Setting up
 
-The 'ec2sh' and 'ec2-gem-example.rb' scripts which will be introduced to you shortly expect your AWS EC2 credentials to be stored as shell environment variables which are accessible to those scripts. This makes them convenient to use whenever you need to do a quick query to see what images you have available to you, what's running now, or to start or stop an instance on EC2. You'll find 'ec2sh' to be a very handy tool. I'll describe only the OS X route for setting up (of course the setup steps will vary depending on your particular system and preferred shell). If you don't want to do it this way, feel free to copy these scripts from the gem dir to any location where you can run them from and modify them directly to include your credentials.
+The 'awshell' and 'ec2-gem-example.rb' scripts which will be introduced to you shortly expect your AWS EC2 credentials to be stored as shell environment variables which are accessible to those scripts. This makes them convenient to use whenever you need to do a quick query to see what images you have available to you, what's running now, or to start or stop an instance on EC2. You'll find 'awshell' to be a very handy tool. I'll describe only the OS X route for setting up (of course the setup steps will vary depending on your particular system and preferred shell). If you don't want to do it this way, feel free to copy these scripts from the gem dir to any location where you can run them from and modify them directly to include your credentials.
 
 Edit the file ~/.bash_login and add the following to the existing contents:
 
+  # OPTIONAL : Why 'export RUBYOPT'? Because we leave loading libs up to you... See : http://gist.github.com/54177
   export RUBYOPT="rubygems"
 
-  Why 'export RUBYOPT'? Because we leave loading libs up to you... See : http://gist.github.com/54177
-
   # For amazon-ec2 and amazon s3 ruby gems
-  export AMAZON_ACCESS_KEY_ID="YOUR_ACCESS_KEY_ID"
-  export AMAZON_SECRET_ACCESS_KEY="YOUR_SECRET_ACCESS_KEY_ID"
+  export AWS_ACCESS_KEY_ID="YOUR_ACCESS_KEY_ID"
+  export AWS_SECRET_ACCESS_KEY="YOUR_SECRET_ACCESS_KEY_ID"
 
 If you are using EC2 in the EU region, make sure you also set:
 
@@ -90,11 +82,11 @@ You can verify that this setup is complete by running the 'set' in a command win
 
 The library exposes one main interface module
 
-  EC2::Base
+  AWS::EC2::Base
 
 This method requires arguments which include your AWS credentials and it will return an object that you can use to make method calls directly against EC2. All the operations for using the EC2 service, including query string header signing, are handled automatically for you. The connection string will look something like this:
 
-  @ec2 = EC2::Base.new(:access_key_id => ACCESS_KEY_ID, :secret_access_key => SECRET_ACCESS_KEY)
+  @ec2 = AWS::EC2::Base.new(:access_key_id => ACCESS_KEY_ID, :secret_access_key => SECRET_ACCESS_KEY)
 
 I've tried to keep the public methods on 'amazon-ec2' as close as possible to the AWS EC2 Query API. This similarity allows you to reference the Query API Reference in the EC2 Developer Guide and be able to get started right away. In most cases the methods names only differ in how they are presented. e.g. 'DescribeImages' becomes '#describe_images()' in Ruby. Feel free to browse the full RDoc documentation for all classes and methods of 'amazon-ec2' if you want more details.
 
@@ -111,16 +103,16 @@ An example Ruby script which exercises the library a bit more is installed for y
 
 Since we also package this sample file in the gem's bin/ dir you should also be able to run it from anywhere on your shell path (once you have set your environment variables as described above).
 
-==== Using the 'ec2sh' command shell
+==== Using the 'awshell' command shell
 
-The 'ec2sh' command shell is actually a standard 'irb' Ruby shell, with the main difference being we read your AWS credentials from your environment and pre-configure a connection string for you. This lets you run any EC2 command very simply. This has proven to be a valuable tool during the development of this gem and you should try it out. Since we install this tool in your system path as part of the installation of this gem, you should be able to simply run 'ec2sh' from any terminal command prompt on your local system. You'll see some basic instructions for use, and a few examples when you start 'ec2sh'. Go ahead and try it out now. We'll wait...
+The 'awshell' command shell is actually a standard 'irb' Ruby shell, with the main difference being we read your AWS credentials from your environment and pre-configure a connection string for you. This lets you run any EC2 command very simply. This has proven to be a valuable tool during the development of this gem and you should try it out. Since we install this tool in your system path as part of the installation of this gem, you should be able to simply run 'awshell' from any terminal command prompt on your local system. You'll see some basic instructions for use, and a few examples when you start 'awshell'. Go ahead and try it out now. We'll wait...
 
 If you're not in front of a terminal shell now (perhaps you're browsing this site on your iPhone) this is what you would see:
 
 
-  hostname:/tmp/rails/amazon_test glenn$ ec2sh
+  hostname:/tmp/rails/amazon_test glenn$ awshell
 
-    'ec2sh' usage :
+    'awshell' usage :
     This is an interactive 'irb' command shell that allows you to use all
     commands available to the amazon-ec2 gem.  You'll find this to be a
     great tool to help you debug issues and practice running commands
@@ -129,12 +121,7 @@ If you're not in front of a terminal shell now (perhaps you're browsing this sit
     The EC2 connection is wired to the class instance '@ec2'.  Make method calls
     on this to execute commands on EC2.  Adding a #to_s
     at the end of any command should give you a full String representation of the
-    response.  The #xml data is available for each response
-    which allows you to view the full and complete XML response returned by
-    EC2 without any parsing applied.  This is useful for viewing the
-    hierarchy of an entire response in a friendly way (if XML is friendly
-    to you!).  Understanding the hierarchy of the XML response is critical
-    to making effective use of this library.
+    response.
 
       Examples to try:
 
@@ -144,28 +131,28 @@ If you're not in front of a terminal shell now (perhaps you're browsing this sit
         returns : a string representation of ALL images
         >> @ec2.describe_images.to_s
 
-        returns : an Array of EC2::Response objects, each an EC2 image and its data
+        returns : an Array of AWS::Response objects, each an EC2 image and its data
         >> @ec2.describe_images.imagesSet.item
         >> @ec2.describe_images.imagesSet.item[0] (a hash representing a single item in that array)
         >> @ec2.describe_images.imagesSet.item[0].to_s (a String representation of that item)
 
   >> @ec2.describe_images.imagesSet.item[0].to_s
-  => "#<EC2::Response:0x100A465B4 imageId=\"ami-018e6b68\" imageLocation=\"rbuilder-online/phonehome-1.5.6-x86_10132.img.manifest.xml\" imageOwnerId=\"099034111737\" imageState=\"available\" isPublic=\"true\" parent=#<EC2::Response:0x100A469A6 ...>>"
+  => "#<AWS::Response:0x100A465B4 imageId=\"ami-018e6b68\" imageLocation=\"rbuilder-online/phonehome-1.5.6-x86_10132.img.manifest.xml\" imageOwnerId=\"099034111737\" imageState=\"available\" isPublic=\"true\" parent=#<AWS::Response:0x100A469A6 ...>>"
 
 
 === Ruby script usage example:
 
-Try out the following bit of code. This should walk through each image returned by a call to #describe_images and print out its key data. Note in the example below that you cannot walk through the results of the #describe_images call with the '.each' iterator (You'll get errors if you try). You need to instead walk through the Array of items which are in the 'imagesSet' embedded in the response. This reflects exactly the XML hierarchy of data returned from EC2 which we parse to Ruby OpenStruct objects (EC2::Response).
+Try out the following bit of code. This should walk through each image returned by a call to #describe_images and print out its key data. Note in the example below that you cannot walk through the results of the #describe_images call with the '.each' iterator (You'll get errors if you try). You need to instead walk through the Array of items which are in the 'imagesSet' embedded in the response. This reflects exactly the XML hierarchy of data returned from EC2 which we parse to Ruby OpenStruct objects (AWS::Response).
 
   #!/usr/bin/env ruby
 
   require 'rubygems'
-  require 'EC2'
+  require 'AWS'
 
   ACCESS_KEY_ID = '--YOUR AWS ACCESS KEY ID--'
   SECRET_ACCESS_KEY = '--YOUR AWS SECRET ACCESS KEY--'
 
-  ec2 = EC2::Base.new(:access_key_id => ACCESS_KEY_ID, :secret_access_key => SECRET_ACCESS_KEY)
+  ec2 = AWS::EC2::Base.new(:access_key_id => ACCESS_KEY_ID, :secret_access_key => SECRET_ACCESS_KEY)
 
   puts "----- listing images owned by 'amazon' -----"
   ec2.describe_images(:owner_id => "amazon").imagesSet.item.each do |image|
@@ -177,21 +164,27 @@ Try out the following bit of code. This should walk through each image returned 
 
 === Ruby on Rails usage example:
 
-<b>config/environment.rb</b>
+
+<b>Rails 2.3.x - config/environment.rb</b>
 
   Rails::Initializer.run do |config|
    ...
-   # INSERT THIS LINE IN YOUR CONFIG
-   config.gem "amazon-ec2", :lib => "EC2"
+   config.gem "amazon-ec2", :lib => "AWS", :source => "http://gemcutter.org/"
    ...
   end
+
+
+<b>Rails 3.x.x - Gemfile</b>
+
+  ...
+  gem "amazon-ec2", :require => "AWS"
 
 
 <b>app/controllers/my_controller.rb</b>
 
   [some controller code ...]
 
-  ec2 = EC2::Base.new(:access_key_id => "YOUR_AWS_ACCESS_KEY_ID", :secret_access_key => "YOUR_AWS_SECRET_ACCESS_KEY")
+  ec2 = AWS::EC2::Base.new(:access_key_id => "YOUR_AWS_ACCESS_KEY_ID", :secret_access_key => "YOUR_AWS_SECRET_ACCESS_KEY")
 
   # get ALL public images
   @ec2_images = ec2.describe_images().imagesSet.item
@@ -244,9 +237,9 @@ Try out the following bit of code. This should walk through each image returned 
   <% end %>
 
 
-=== Important notes regarding the structure of EC2::Response Objects
+=== Important notes regarding the structure of AWS::Response Objects
 
-One of the key benefits of this new version of the library is that all responses from EC2 are bundled up in a real data structure and no longer require parsing of text. The hash returned is populated directly from the XML given to us by EC2 in response to any command we issue. This means that future changes to the API and what is returned by EC2 will be handled transparently by the gem. This is a huge benefit. What this means though, is that you may have to do a little homework on what actually gets returned by EC2 as XML. For example, when you make a #describe_images call in 'ec2sh' what AWS returns behind the scenes looks like:
+One of the key benefits of this new version of the library is that all responses from EC2 are bundled up in a real data structure and no longer require parsing of text. The hash returned is populated directly from the XML given to us by EC2 in response to any command we issue. This means that future changes to the API and what is returned by EC2 will be handled transparently by the gem. This is a huge benefit. What this means though, is that you may have to do a little homework on what actually gets returned by EC2 as XML. For example, when you make a #describe_images call in 'awshell' what AWS returns behind the scenes looks like:
 
   <?xml version="1.0"?>
   <DescribeImagesResponse xmlns="http://ec2.amazonaws.com/doc/2007-01-19/">
@@ -303,7 +296,18 @@ So, for example, if you wanted to get the image ID of the third image listed in 
   >> puts @ec2.describe_images(:owner_id => 'amazon').imagesSet.item[2].imageId
   ami-23b6534a
 
-EC2 will typically return sets of things (imagesSet, reservationSet, etc.) which we map to ruby Arrays (.imagesSet.item in the example above). If you want to iterate over a response set you will need to iterate over this array. The Arrays will typically contain additional EC2::Response objects that represent each individual item. You'll find that you can use the 'ec2sh' to help you understand the structure more completely if you try issuing commands there as a way to practice seeing what will be returned and making sure you get exactly what you want.
+EC2 will typically return sets of things (imagesSet, reservationSet, etc.) which we map to ruby Arrays (.imagesSet.item in the example above). If you want to iterate over a response set you will need to iterate over this array. The Arrays will typically contain additional AWS::Response objects that represent each individual item. You'll find that you can use the 'awshell' to help you understand the structure more completely if you try issuing commands there as a way to practice seeing what will be returned and making sure you get exactly what you want.
+
+=== Handling Exceptions
+If for some reason an error occurs when executing a method (e.g. its arguments were
+incorrect, or it simply failed) then an exception will be thrown.  The exceptions are
+defined in exceptions.rb as individual classes and should match the exceptions that
+AWS has defined in the API.  If the exception raised cannot be identified then a
+more generic exception class will be thrown.
+
+The implication of this is that you need to be prepared to handle any exceptions that
+may be raised by this library in YOUR code with a 'rescue' clause.  It is up to you
+to determine how you want to handle these exceptions in your code.
 
 
 == Additional Resources
@@ -311,6 +315,7 @@ EC2 will typically return sets of things (imagesSet, reservationSet, etc.) which
 === Project Websites
 
 * Project Home : http://github.com/grempe/amazon-ec2/tree/master
+* API Documentation : http://rdoc.info/projects/grempe/amazon-ec2
 * Discussion Group : http://groups.google.com/group/amazon-ec2
 * Report Bugs / Request Features : http://github.com/grempe/amazon-ec2/issues
 * Amazon Web Services : http://aws.amazon.com
@@ -321,7 +326,21 @@ The original code for this library was provided by Amazon Web Services, LLC as s
 
 == Contact
 
-Comments, patches, Git pull requests and bug reports are welcome. Send an email to mailto:glenn@rempe.us or use the Google Groups forum for this project.
+Comments, patches, Git pull requests and bug reports are welcome. Send an email to mailto:glenn@rempe.us or join the Google Groups forum.
+
+== Patches & Pull Requests
+
+Please follow these steps if you want to send a patch or a GitHub pull request:
+
+* Fork grempe/amazon-ec2
+* Create a topic branch: `git checkout -b my_fix`
+* Make sure you add tests for your changes and that they all pass with 'rake test'
+* Don't change files that you don't own like the gemspec or version.rb
+* Commit your changes, one change/fix per commit
+* Push your fixes branch: `git push origin my_fix`
+* Open an Issue on GitHub referencing your branch and send a pull request.
+* Please do not push to `master` on your fork. Using a feature/bugfix branch will make everyone’s life easier.
+
 
 Enjoy!
 

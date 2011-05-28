@@ -12,8 +12,14 @@ require File.dirname(__FILE__) + '/test_helper.rb'
 
 context "An EC2 image " do
 
-  setup do
-    @ec2 = EC2::Base.new( :access_key_id => "not a key", :secret_access_key => "not a secret" )
+  before do
+    @ec2 = AWS::EC2::Base.new( :access_key_id => "not a key", :secret_access_key => "not a secret" )
+
+    @create_image_response_body = <<-RESPONSE
+    <CreateImageResponse xmlns="http://ec2.amazonaws.com/doc/2009-10-31/">
+        <imageId>ami-4fa54026</imageId>
+    </CreateImageResponse>
+    RESPONSE
 
     @register_image_response_body = <<-RESPONSE
     <RegisterImageResponse xmlns="http://ec2.amazonaws.com/doc/2007-03-01">
@@ -56,7 +62,33 @@ context "An EC2 image " do
   end
 
 
-  specify "should be able to be registered" do
+  specify "should be able to be created" do
+    @ec2.stubs(:make_request).with('CreateImage', {"InstanceId"=>"fooid", "Name" => "fooname", "Description" => "foodesc", "NoReboot" => "true"}).
+      returns stub(:body => @create_image_response_body, :is_a? => true)
+    @ec2.create_image(:instance_id => "fooid", :name => "fooname", :description => "foodesc", :no_reboot => true).should.be.an.instance_of Hash
+    @ec2.create_image(:instance_id => "fooid", :name => "fooname", :description => "foodesc", :no_reboot => true).imageId.should.equal "ami-4fa54026"
+  end
+
+
+  specify "method create_image should raise an exception when called with nil/empty string arguments" do
+    lambda { @ec2.create_image() }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.create_image(:instance_id => "", :name => "fooname") }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.create_image(:instance_id => "fooid", :name => "") }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.create_image(:instance_id => nil, :name => "fooname") }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.create_image(:instance_id => "fooid", :name => nil) }.should.raise(AWS::ArgumentError)
+  end
+
+
+  specify "method create_image should raise an exception when called with bad arguments" do
+    lambda { @ec2.create_image(:instance_id => "fooid", :name => "f"*2) }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.create_image(:instance_id => "fooid", :name => "f"*129) }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.create_image(:instance_id => "fooid", :name => "f"*128, :description => "f"*256) }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.create_image(:instance_id => "fooid", :name => "f"*128, :no_reboot => "true") }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.create_image(:instance_id => "fooid", :name => "f"*128, :no_reboot => "false") }.should.raise(AWS::ArgumentError)
+  end
+
+
+  specify "should be able to be registered with manifest" do
     @ec2.stubs(:make_request).with('RegisterImage', {"ImageLocation"=>"mybucket-myimage.manifest.xml"}).
       returns stub(:body => @register_image_response_body, :is_a? => true)
     @ec2.register_image(:image_location => "mybucket-myimage.manifest.xml").imageId.should.equal "ami-61a54008"
@@ -64,9 +96,37 @@ context "An EC2 image " do
   end
 
 
-  specify "method register_image should raise an exception when called without nil/empty string arguments" do
-    lambda { @ec2.register_image() }.should.raise(EC2::ArgumentError)
-    lambda { @ec2.register_image(:image_location => "") }.should.raise(EC2::ArgumentError)
+  specify "should be able to be registered with snapshot" do
+    @ec2.stubs(:make_request).with('RegisterImage', {
+        "Name" => "image_name",
+        "Architecture" => "i386",
+        "KernelId" => "aki-01234567",
+        "RamdiskId" => "ari-01234567",
+        "RootDeviceName" => "/dev/sda1",
+        "BlockDeviceMapping.1.DeviceName" => "/dev/sda1",
+        "BlockDeviceMapping.1.Ebs.SnapshotId" => "snap-01234567",
+        "BlockDeviceMapping.1.Ebs.DeleteOnTermination" => "true",
+      }).returns stub(:body => @register_image_response_body, :is_a? => true)
+    ret = @ec2.register_image({
+      :name => "image_name",
+      :architecture => "i386",
+      :kernel_id => "aki-01234567",
+      :ramdisk_id => "ari-01234567",
+      :root_device_name => "/dev/sda1",
+      :block_device_mapping => [{
+        :device_name => "/dev/sda1",
+        :ebs_snapshot_id => "snap-01234567",
+        :ebs_delete_on_termination => true,
+      }]
+    })
+    ret.imageId.should.equal "ami-61a54008"
+    ret.should.be.an.instance_of Hash
+  end
+
+
+  specify "method register_image should raise an exception when called without :name or :root_device_name" do
+    lambda { @ec2.register_image() }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.register_image(:image_location => "", :root_device_name => "") }.should.raise(AWS::ArgumentError)
   end
 
 
@@ -188,9 +248,9 @@ context "An EC2 image " do
 
 
   specify "method deregister_image should raise an exception when called without nil/empty string arguments" do
-    lambda { @ec2.deregister_image() }.should.raise(EC2::ArgumentError)
-    lambda { @ec2.deregister_image( :image_id => nil ) }.should.raise(EC2::ArgumentError)
-    lambda { @ec2.deregister_image( :image_id => "" ) }.should.raise(EC2::ArgumentError)
+    lambda { @ec2.deregister_image() }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.deregister_image( :image_id => nil ) }.should.raise(AWS::ArgumentError)
+    lambda { @ec2.deregister_image( :image_id => "" ) }.should.raise(AWS::ArgumentError)
   end
 
 

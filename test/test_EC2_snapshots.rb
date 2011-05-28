@@ -12,8 +12,8 @@ require File.dirname(__FILE__) + '/test_helper.rb'
 
 context "EC2 snaphots " do
 
-  setup do
-    @ec2 = EC2::Base.new( :access_key_id => "not a key", :secret_access_key => "not a secret" )
+  before do
+    @ec2 = AWS::EC2::Base.new( :access_key_id => "not a key", :secret_access_key => "not a secret" )
 
     @describe_snapshots_response_body = <<-RESPONSE
     <DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2008-05-05">
@@ -32,6 +32,7 @@ context "EC2 snaphots " do
       <status>pending</status>
       <startTime>2008-05-07T12:51:50.000Z</startTime>
       <progress></progress>
+      <description>Daily Backup</description>
     </CreateSnapshotResponse>
     RESPONSE
 
@@ -45,7 +46,7 @@ context "EC2 snaphots " do
 
 
   specify "should be able to be described with describe_snapshots" do
-    @ec2.stubs(:make_request).with('DescribeSnapshots', {"SnapshotId.1"=>"snap-78a54011"}).
+    @ec2.stubs(:make_request).with('DescribeSnapshots', {'SnapshotId.1' => 'snap-78a54011'}).
       returns stub(:body => @describe_snapshots_response_body, :is_a? => true)
 
     @ec2.describe_snapshots( :snapshot_id => "snap-78a54011" ).should.be.an.instance_of Hash
@@ -68,6 +69,20 @@ context "EC2 snaphots " do
     response.volumeId.should.equal "vol-4d826724"
     response.status.should.equal "pending"
     response.progress.should.equal nil
+  end
+
+  specify "should be able to be created with a volume_id and description" do
+    @ec2.stubs(:make_request).with('CreateSnapshot', {"VolumeId" => "vol-4d826724", "Description" => "Daily Backup"}).
+      returns stub(:body => @create_snapshot_response_body, :is_a? => true)
+
+    @ec2.create_snapshot( :volume_id => "vol-4d826724", :description => "Daily Backup" ).should.be.an.instance_of Hash
+
+    response = @ec2.create_snapshot( :volume_id => "vol-4d826724", :description => "Daily Backup")
+    response.snapshotId.should.equal "snap-78a54011"
+    response.volumeId.should.equal "vol-4d826724"
+    response.status.should.equal "pending"
+    response.progress.should.equal nil
+    response.description.should.equal "Daily Backup"
   end
 
   specify "should be able to be deleted with a snapsot_id" do
